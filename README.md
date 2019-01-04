@@ -1,1 +1,1 @@
-# Race-Gen
+This repository contains materials, data, and analyses reported in a manuscript that has been submitted for publication ("Explicit Categorization Goals Affect Attention-Related Processing of Race and Gender During Person Construal").
