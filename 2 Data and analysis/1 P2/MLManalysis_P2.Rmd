@@ -1,0 +1,291 @@
+---
+title: "MLM analysis for P2"
+author: "Hannah"
+date: "11/20/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
+require(lme4)
+require(lmerTest)
+require(dplyr)
+require(knitr)
+require(ggplot2)
+require(kableExtra)
+
+dat = read.delim("AllSubs_acceptedTrials_long_nobe_nobs.txt")
+```
+
+*Redone with new set of 11 electrodes. Reblocked participants who were missing trials and increased number of rejected electrodes.*
+
+## 1. Gender categorization task
+
+Average number of trials per condition per participant:
+``` {r}
+gendat = filter(dat, Task == "Gender")
+
+gendat_temp = gendat
+gendat_temp$Condition = paste(gendat_temp$TarRace, gendat_temp$TarGender, gendat_temp$Fix, sep = "_")
+
+numTrials = NULL
+for (i in unique(gendat_temp$Subject)) {
+  temp = filter(gendat_temp, Subject == i)
+  for (c in unique(gendat_temp$Condition)) {
+    num = length(unique(temp$Trial[temp$Condition == c]))
+    numTrials = rbind(numTrials, data.frame(Subject = i, Condition = c, numTrials = num))
+    }
+}
+
+mean(numTrials$numTrials)
+```
+
+### 1a. P2 waveforms
+
+See figures in "4 Grand averages/Plots".
+
+
+### 1b. Effects of Target Race, Target Gender, Fixation, and Participant Race on P2 amplitude (all trials)
+DV is trial level data. Subjects with < 50% trials accepted are excluded.  
+Electrodes: `r unique(gendat$Electrode)`  
+
+P2 is quantified as mean amplitude from 130-190 ms.  
+
+Participant race, target race, and target gender are effect coded. Both eye and forehead fixation trials are included.  
+
+Included n = 63 (32 black, 31 white)  
+
+```{r}
+# 2. Look at Gender task with Par Race, Target Race, and Target Gender as predictors
+
+# Determine model (commented out to make knitting faster)
+# n1 = lmer(value ~ 1 + (TarRace*TarGender|Subject) + (1|Electrode), data = gendat)
+# n2 = lmer(value ~ 1 + (TarRace+TarGender|Subject) + (1|Electrode), data = gendat)
+# n3 = lmer(value ~ 1 + (TarRace|Subject) + (1|Electrode), data = gendat) # use this
+
+# Add predictors, effect coding
+gendat$TarRace.e = -1
+gendat$TarRace.e[gendat$TarRace == "White"] = 1
+
+gendat$TarGender.e = -1
+gendat$TarGender.e[gendat$TarGender == "male"] = 1
+
+gendat$ParRace.e = -1
+gendat$ParRace.e[gendat$ParRace == "White"] = 1
+
+gendat$Fix.e = -1
+gendat$Fix.e[gendat$Fix == "forehead"] = 1
+
+n4 = lmer(value ~ TarRace.e*TarGender.e*Fix.e*ParRace.e + (TarRace.e + TarGender.e|Subject) + (1|Electrode), data = gendat)
+sum.n4 = summary(n4)
+```
+
+``` {r}
+sum.n4$call
+sum.n4$varcor
+kable(round(sum.n4$coefficients, digits=3)) %>% 
+  kable_styling(full_width = F, position = "center", bootstrap_options = "condensed") %>% 
+  row_spec(c(1:5,7,11:12,14), bold = T, background = "goldenrod2")
+```
+
+### 1c. Just Black participants  
+Fixation and target race are effect coded.
+``` {r}
+n6 = lmer(value ~ TarRace.e*Fix.e + (TarRace.e + Fix.e|Subject) + (1|Electrode), data = filter(gendat, ParRace == "Black"))
+sum.n6 = summary(n6)
+sum.n6$call
+sum.n6$varcor
+kable(round(sum.n6$coefficients, digits=3)) %>% 
+  kable_styling(full_width = F, position = "center", bootstrap_options = "condensed") %>% 
+  row_spec(c(1,3:4), bold = T, background = "goldenrod2")
+```
+
+### 1d. Just White participants  
+Fixation and target race are effect coded. 
+``` {r}
+n6 = lmer(value ~ TarRace.e*Fix.e + (TarRace.e + Fix.e|Subject) + (1|Electrode), data = filter(gendat, ParRace == "White"))
+sum.n6 = summary(n6)
+sum.n6$call
+sum.n6$varcor
+kable(round(sum.n6$coefficients, digits=3)) %>% 
+  kable_styling(full_width = F, position = "center", bootstrap_options = "condensed") %>% 
+  row_spec(c(1,4), bold = T, background = "goldenrod2")
+```
+
+### 1e. Plot for interactions
+
+``` {r}
+facet_labels = c(Black = "Black participants", White = "White participants")
+ggplot(gendat, aes(Fix, value, fill = TarRace)) +
+  stat_summary(fun.y = mean, geom = "bar", position = "dodge") +
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width=.9), width = .2) +
+  facet_wrap(~ParRace, labeller=labeller(ParRace = facet_labels)) + 
+  #  ggtitle("Total number of errors") +
+  labs(y = "P2 amplitude") +
+  scale_fill_manual(values=c("black","grey70"), guide = guide_legend(title = "Target Race")) +
+  theme_bw() +
+  ggtitle("Gender task") +
+  #coord_cartesian(ylim = c(400, 500)) +
+  theme(panel.grid.major = element_line(color = "white"),
+        panel.grid.minor = element_line(color = "white"),
+        strip.text.x = element_text(face = "bold", size = 14),
+        strip.background = element_rect(fill = "grey98"),
+        axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        plot.title = element_text(hjust = 0.5))
+```
+
+
+## 2. Race categorization task  
+
+Average number of trials per condition per participant:
+``` {r}
+racedat = filter(dat, Task == "Race")
+
+racedat_temp = racedat
+racedat_temp$Condition = paste(racedat_temp$TarRace, racedat_temp$TarGender, racedat_temp$Fix, sep = "_")
+
+numTrials = NULL
+for (i in unique(racedat_temp$Subject)) {
+  temp = filter(racedat_temp, Subject == i)
+  for (c in unique(racedat_temp$Condition)) {
+    num = length(unique(temp$Trial[temp$Condition == c]))
+    numTrials = rbind(numTrials, data.frame(Subject = i, Condition = c, numTrials = num))
+    }
+}
+
+mean(numTrials$numTrials)
+```
+
+### 2a. P2 waveforms
+
+See figures in "4 Grand averages/Plots".
+
+### 2b. Effects of Target Race, Target Gender, and Participant Race on P2 amplitude (all trials)
+
+DV is trial level data. Subjects with < 50% trials accepted are excluded.  
+Electrodes: `r unique(racedat$Electrode)` 
+
+P2 is quantified as mean amplitude from 130-190 ms.  
+
+Participant race, target race, and target gender are effect coded. Both eye and forehead fixation trials are included.  
+
+Included n = 63 (33 black, 30 white)
+
+
+```{r}
+# 1. Look at Race Task with Par Race, Target Race, and Target Gender as predictors
+
+# Determine model (commented out to make kitting faster)
+# m1 = lmer(value ~ 1 + (TarRace*TarGender|Subject) + (1|Electrode), data = racedat)
+# m2 = lmer(value ~ 1 + (TarRace+TarGender|Subject) + (1|Electrode), data = racedat) # use this
+
+# Add predictors, effect coding
+racedat$TarRace.e = -1
+racedat$TarRace.e[racedat$TarRace == "White"] = 1
+
+racedat$TarGender.e = -1
+racedat$TarGender.e[racedat$TarGender == "male"] = 1
+
+racedat$ParRace.e = -1
+racedat$ParRace.e[racedat$ParRace == "White"] = 1
+
+racedat$Fix.e = -1
+racedat$Fix.e[racedat$Fix == "forehead"] = 1
+
+m3 = lmer(value ~ TarRace.e*TarGender.e*Fix.e*ParRace.e + (TarRace.e+TarGender.e|Subject) + (1|Electrode), data = racedat) # use this
+sum.m3 = summary(m3)
+```
+All variables are effect coded.  
+
+
+``` {r}
+sum.m3$call
+sum.m3$varcor
+kable(round(sum.m3$coefficients, digits=3)) %>% 
+  kable_styling(full_width = F, position = "center", bootstrap_options = "condensed") %>% 
+  row_spec(c(1:2,4:7, 12, 14), bold = T, background = "goldenrod2")
+```
+
+
+### 2c. Just Black participants  
+Fixation and target race are effect coded. 
+``` {r}
+m5 = lmer(value ~ TarRace.e*Fix.e + (TarRace.e + Fix.e|Subject) + (1|Electrode), data = filter(racedat, ParRace == "Black"))
+sum.m5 = summary(m5)
+sum.m5$call
+sum.m5$varcor
+kable(round(sum.m5$coefficients, digits=3)) %>% 
+  kable_styling(full_width = F, position = "center", bootstrap_options = "condensed") %>% 
+  row_spec(c(1:4), bold = T, background = "goldenrod2")
+```
+
+### 2d. Just White participants 
+Fixation and target race are effect coded. 
+``` {r}
+m5 = lmer(value ~ TarRace.e*Fix.e + (TarRace.e + Fix.e|Subject) + (1|Electrode), data = filter(racedat, ParRace == "White"))
+sum.m5 = summary(m5)
+sum.m5$call
+sum.m5$varcor
+kable(round(sum.m5$coefficients, digits=3)) %>% 
+  kable_styling(full_width = F, position = "center", bootstrap_options = "condensed") %>% 
+  row_spec(c(1:4), bold = T, background = "goldenrod2")
+```
+
+### 1e. Plot for interactions
+
+``` {r}
+facet_labels = c(Black = "Black participants", White = "White participants")
+ggplot(racedat, aes(Fix, value, fill = TarRace)) +
+  stat_summary(fun.y = mean, geom = "bar", position = "dodge") +
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width=.9), width = .2) +
+  facet_wrap(~ParRace, labeller=labeller(ParRace = facet_labels)) + 
+  #  ggtitle("Total number of errors") +
+  labs(y = "P2 amplitude") +
+  scale_fill_manual(values=c("black","grey70"), guide = guide_legend(title = "Target Race")) +
+  theme_bw() +
+  ggtitle("Race task") +
+  #coord_cartesian(ylim = c(400, 500)) +
+  theme(panel.grid.major = element_line(color = "white"),
+        panel.grid.minor = element_line(color = "white"),
+        strip.text.x = element_text(face = "bold", size = 14),
+        strip.background = element_rect(fill = "grey98"),
+        axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 14),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        plot.title = element_text(hjust = 0.5))
+```
+
+
+## 3. Comparison of tasks
+
+DV is trial level data. Subjects with < 50% trials accepted are excluded. 
+
+Included n = 65 (34 black, 31 white)
+
+#### Testing difference in effect of RACE and GENDER across tasks, collapsing across participant race:  
+Target Race, Target Gender, and Task are included as effect-coded predictors. Only the Target Race x Task and Target Gender x Task interactions are included. Both eye and forehead fixation trials are included.  
+```{r}
+
+# Add predictors, effect coding
+dat$TarRace.e = -1
+dat$TarRace.e[dat$TarRace == "White"] = 1
+
+dat$Task.e = -1
+dat$Task.e[dat$Task == "Race"] = 1
+
+dat$TarGender.e = -1
+dat$TarGender.e[dat$TarGender == "male"] = 1
+
+m3 = lmer(value ~ TarGender.e*Task.e + TarRace.e*Task.e + (TarGender.e+TarRace.e + Task.e|Subject) + (1|Electrode), data = dat) # use this
+sum.m3 = summary(m3)
+
+sum.m3$call
+sum.m3$varcor
+kable(round(sum.m3$coefficients, digits=3))%>% 
+  kable_styling(full_width = F, position = "center", bootstrap_options = "condensed") %>% 
+  row_spec(c(1:2, 4:5), bold = T, background = "goldenrod2")
+```
