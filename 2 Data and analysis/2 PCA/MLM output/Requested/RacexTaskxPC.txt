@@ -1,0 +1,53 @@
+Linear mixed model fit by REML 
+t-tests use  Satterthwaite approximations to degrees of freedom ['lmerMod']
+Formula: meanAmp_factor ~ Race.e * Task.e * Component.e + (Race.e + Task.e +      Component.e | Subject) + (1 | Electrode)
+   Data: combine
+
+REML criterion at convergence: 35071.3
+
+Scaled residuals: 
+    Min      1Q  Median      3Q     Max 
+-4.8521 -0.6255  0.0019  0.6179  4.5948 
+
+Random effects:
+ Groups    Name        Variance  Std.Dev. Corr             
+ Subject   (Intercept) 2.2008083 1.48351                   
+           Race.e      0.0484658 0.22015  -0.21            
+           Task.e      0.1579983 0.39749   0.04 -0.08      
+           Component.e 1.2477307 1.11702  -0.08  0.09 -0.06
+ Electrode (Intercept) 0.0007318 0.02705                   
+ Residual              1.0960064 1.04690                   
+Number of obs: 11648, groups:  Subject, 52; Electrode, 7
+
+Fixed effects:
+                            Estimate Std. Error         df t value Pr(>|t|)    
+(Intercept)                1.602e+00  2.062e-01  5.125e+01   7.769 3.23e-10 ***
+Race.e                    -9.479e-02  3.203e-02  5.100e+01  -2.959  0.00467 ** 
+Task.e                     5.425e-03  5.597e-02  5.100e+01   0.097  0.92317    
+Component.e               -1.855e-01  1.552e-01  5.101e+01  -1.195  0.23748    
+Race.e:Task.e             -1.742e-02  9.700e-03  1.143e+04  -1.795  0.07261 .  
+Race.e:Component.e        -9.196e-02  9.700e-03  1.143e+04  -9.480  < 2e-16 ***
+Task.e:Component.e         1.093e-01  9.700e-03  1.143e+04  11.265  < 2e-16 ***
+Race.e:Task.e:Component.e -4.617e-02  9.700e-03  1.143e+04  -4.760 1.96e-06 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Correlation of Fixed Effects:
+            (Intr) Race.e Task.e Cmpnn. Rc.:T. Rc.:C. Ts.:C.
+Race.e      -0.201                                          
+Task.e       0.043 -0.078                                   
+Component.e -0.079  0.086 -0.057                            
+Race.e:Tsk.  0.000  0.000  0.000  0.000                     
+Rc.:Cmpnnt.  0.000  0.000  0.000  0.000  0.000              
+Tsk.:Cmpnn.  0.000  0.000  0.000  0.000  0.000  0.000       
+Rc.:Tsk.:C.  0.000  0.000  0.000  0.000  0.000  0.000  0.000
+[1] "________________________________________________________________________________________________"
+                              Estimate  Std. Error          df     t value     Pr(>|t|)
+(Intercept)                1.602135594 0.206208329    51.24979  7.76949991 3.234288e-10
+Race.e                    -0.094785793 0.032033253    51.00001 -2.95898123 4.671295e-03
+Task.e                     0.005424593 0.055968944    51.00051  0.09692149 9.231686e-01
+Component.e               -0.185524796 0.155206038    51.00515 -1.19534522 2.374804e-01
+Race.e:Task.e             -0.017416026 0.009700204 11430.01523 -1.79542888 7.261180e-02
+Race.e:Component.e        -0.091959903 0.009700204 11430.01523 -9.48020301 0.000000e+00
+Task.e:Component.e         0.109274827 0.009700204 11430.01523 11.26520914 0.000000e+00
+Race.e:Task.e:Component.e -0.046169705 0.009700204 11430.01523 -4.75966330 1.962934e-06

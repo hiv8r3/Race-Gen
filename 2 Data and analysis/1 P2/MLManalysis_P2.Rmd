@@ -21,7 +21,7 @@ dat = read.delim("AllSubs_acceptedTrials_long_nobe_nobs.txt")
 
 ## 1. Gender categorization task
 
-Average number of trials per condition per participant:
+
 ``` {r}
 gendat = filter(dat, Task == "Gender")
 
@@ -37,8 +37,13 @@ for (i in unique(gendat_temp$Subject)) {
     }
 }
 
-mean(numTrials$numTrials)
 ```
+Median number of trials per condition per participant: `r median(numTrials$numTrials)`  
+Min:`r min(numTrials$numTrials)`  
+Max:`r max(numTrials$numTrials)`  
+
+
+
 
 ### 1a. P2 waveforms
 
@@ -140,7 +145,6 @@ ggplot(gendat, aes(Fix, value, fill = TarRace)) +
 
 ## 2. Race categorization task  
 
-Average number of trials per condition per participant:
 ``` {r}
 racedat = filter(dat, Task == "Race")
 
@@ -156,8 +160,11 @@ for (i in unique(racedat_temp$Subject)) {
     }
 }
 
-mean(numTrials$numTrials)
+
 ```
+Median number of trials per condition per participant: `r median(numTrials$numTrials)`  
+Min:`r min(numTrials$numTrials)`  
+Max:`r max(numTrials$numTrials)`  
 
 ### 2a. P2 waveforms
 
