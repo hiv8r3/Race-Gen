@@ -572,6 +572,36 @@ sink()
 
 
 # 8. Within subjects plots of effect of task ------------------------------
+VT2 = read.delim(paste("6 PCA/6 Tasks together (Revision 1)/4 For MLM analysis/BothTasks_VF2_longDatForMLM.txt", sep=""))
+
+# Effect code
+VT2$Race.e = -1
+VT2$Race.e[VT2$Race == "White"] = 1
+
+VT2$Gen.e = -1
+VT2$Gen.e[VT2$Gender == "male"] = 1
+
+VT2$Fix.e = -1
+VT2$Fix.e[VT2$Fix == "fore"] = 1
+
+VT2$Task.e = -1
+VT2$Task.e[VT2$Task == "Race"] = 1
+
+
+VT3 = read.delim(paste("6 PCA/6 Tasks together (Revision 1)/4 For MLM analysis/BothTasks_VF3_longDatForMLM.txt", sep=""))
+
+# Effect code
+VT3$Race.e = -1
+VT3$Race.e[VT3$Race == "White"] = 1
+
+VT3$Gen.e = -1
+VT3$Gen.e[VT3$Gender == "male"] = 1
+
+VT3$Fix.e = -1
+VT3$Fix.e[VT3$Fix == "fore"] = 1
+
+VT3$Task.e = -1
+VT3$Task.e[VT3$Task == "Race"] = 1
 
 # Gender Task
 m2.gen = lmer(meanAmp_factor ~ Race.e+Gen.e+Fix.e + (Race.e+Fix.e+Gen.e|Subject) + (1|Electrode), data = filter(VT2, Task == "Gender")) 
@@ -596,26 +626,58 @@ PC3.gen = data.frame(Subject = row.names(coef(m3.gen)$Subject[2]),
                      Task = "Gender")
 
 PC2.race = data.frame(Subject = row.names(coef(m2.race)$Subject[2]),
-                     Race.Effect = coef(m2.race)$Subject[2],
-                     Component = "PC2",
-                     Task = "Race")
+                      Race.Effect = coef(m2.race)$Subject[2],
+                      Component = "PC2",
+                      Task = "Race")
 
 PC3.race = data.frame(Subject = row.names(coef(m3.race)$Subject[2]),
-                     Race.Effect = coef(m3.race)$Subject[2],
-                     Component = "PC3",
-                     Task = "Race")
+                      Race.Effect = coef(m3.race)$Subject[2],
+                      Component = "PC3",
+                      Task = "Race")
 
 # Combine into data set
 RaceEffect = rbind(PC2.gen, PC3.gen, PC2.race, PC3.race)
 
+# add variable for color coding in plots
+library(tidyr)
+temp = spread(RaceEffect, Task, Race.e)
+temp$Diff = temp$Gender - temp$Race
+temp$Direction = ifelse(temp$Diff < 0, "negative", "positive")
+
+PC2.merge = merge(filter(RaceEffect, Component == "PC2"), 
+                  select(filter(temp, Component == "PC2"), Subject, Direction), 
+                  by = "Subject")
+
+PC3.merge = merge(filter(RaceEffect, Component == "PC3"), 
+                  select(filter(temp, Component == "PC3"), Subject, Direction), 
+                  by = "Subject")
+
+RaceEff = rbind(PC2.merge, PC3.merge)
+
+
 # add ParRace
-parRace = read.delim("5 P2/AllSubs_indavgs_long_nobe_nobs.txt")
-for (i in unique(RaceEffect$Subject)){
-  RaceEffect$ParRace[RaceEffect$Subject == i] = as.character(unique(parRace$ParRace[parRace$Subject == i]))
-}
+parRace = read.delim("5 P2/AllSubs_indavgs_long_nobe_nobs.txt") %>% 
+  filter(Task == "Gender", TarRace == "Black", TarGender == "female", Fix == "eyes", Electrode == "C1")
+RaceEff = merge(RaceEff, select(parRace, Subject, ParRace), by = "Subject")
+
+# add grand averages
+average = select(RaceEff, -ParRace, -Subject, -Direction) %>% 
+  group_by(Component, Task) %>% 
+  summarize_all(mean) %>% 
+  as.data.frame()
+average$Subject = "All"
+average$ParRace = NA
+average$Direction = "Average"
+average = select(average, Subject, Race.e, Component, Task, Direction, ParRace)
+average[1,2] = .03
+
+RaceEff = rbind(RaceEff, average)
+
+# change Task variable for plotting
+RaceEff$Task = ifelse(RaceEff$Task == "Gender", "Gender Task", "Race Task")
 
 
-# Get BLUPs (Effect of Race)
+# Get BLUPs (Effect of Gender)
 
 PC2.gen = data.frame(Subject = row.names(coef(m2.gen)$Subject[3]),
                      Race.Effect = coef(m2.gen)$Subject[3],
@@ -638,92 +700,121 @@ PC3.race = data.frame(Subject = row.names(coef(m3.race)$Subject[3]),
                       Task = "Race")
 
 # Combine into data set
-GenEffect = rbind(PC2.gen, PC3.gen, PC2.race, PC3.race)
+GenEffect = rbind(PC2.gen, PC3.gen, PC2.race, PC3.race) 
 
-# add parRace
-for (i in unique(GenEffect$Subject)){
-  GenEffect$ParRace[GenEffect$Subject == i] = as.character(unique(parRace$ParRace[parRace$Subject == i]))
-}
+# add variable for color coding in plots
+temp = spread(GenEffect, Task, Gen.e)
+temp$Diff = temp$Gender - temp$Race
+temp$Direction = ifelse(temp$Diff < 0, "negative", "positive")
+
+PC2.merge = merge(filter(GenEffect, Component == "PC2"), 
+                  select(filter(temp, Component == "PC2"), Subject, Direction), 
+                  by = "Subject")
+
+PC3.merge = merge(filter(GenEffect, Component == "PC3"), 
+                  select(filter(temp, Component == "PC3"), Subject, Direction), 
+                  by = "Subject")
+
+GenEff = rbind(PC2.merge, PC3.merge)
+
+
+# add ParRace
+GenEff = merge(GenEff, select(parRace, Subject, ParRace), by = "Subject")
+
+# add grand averages
+average = select(GenEff, -ParRace, -Subject, -Direction) %>% 
+  group_by(Component, Task) %>% 
+  summarize_all(mean) %>% 
+  as.data.frame()
+average$Subject = "All"
+average$ParRace = NA
+average$Direction = "Average"
+average = select(average, Subject, Gen.e, Component, Task, Direction, ParRace)
+
+GenEff = rbind(GenEff, average)
+
+# change Task variable for plotting
+GenEff$Task = ifelse(GenEff$Task == "Gender", "Gender Task", "Race Task")
+
 
 # plot 
-require(ggplot2)
+library(ggplot2)
+condColors <- c("Average" = "#000000", #black
+                "negative" = "#E69F00", #orange
+                "positive" = "#56B4E9") #sky blue
 
-ggplot(filter(RaceEffect, Component == "PC2"), aes(Task, Race.e, color = Subject)) +
+# Effect of race
+ggplot(filter(RaceEff, Component == "PC2"), aes(Task, Race.e, color = Direction)) +
   geom_point() +
-  geom_line(aes(group = Subject)) +
+  geom_line(aes(group = Subject), size = .8) +
   ylab("Effect of Race") +
   ggtitle("PC-2") +
+  scale_color_manual(values = condColors) +
+  theme_bw() +
   theme(panel.grid.major.x = element_blank(), 
         panel.grid.minor.x = element_blank(),
         axis.text = element_text(size = 22),
         axis.title = element_text(size = 24),
-        plot.title = element_text(size = 22),
-        legend.text = element_text(size = 14),
-        legend.title = element_text(size = 16)) +
-  coord_cartesian(ylim =c(-1.72, .85))
+        axis.title.x = element_blank(),
+        plot.title = element_text(size = 22, hjust = 0.5),
+        legend.position="none") +
+  coord_cartesian(ylim =c(-1.75, .8)) +
+  scale_y_continuous(breaks=c(-1.5, -1, -.5, 0, .5, 1))
 
 ggsave("./6 PCA/4 Figures/Within SS comparison/PC2_EffectofRace.jpg")
 
-ggplot(filter(RaceEffect, Component == "PC2"), aes(Task, Race.e, group = Subject, color = ParRace)) +
+ggplot(filter(RaceEff, Component == "PC3"), aes(Task, Race.e, color = Direction)) +
   geom_point() +
-  geom_line(aes(group = Subject)) +
-  ylab("Effect of Race") +
-  ggtitle("PC-2")  +
-  theme(panel.grid.major.x = element_blank(), 
-        panel.grid.minor.x = element_blank(),
-        axis.text = element_text(size = 22),
-        axis.title = element_text(size = 24),
-        plot.title = element_text(size = 22),
-        legend.text = element_text(size = 14),
-        legend.title = element_text(size = 16)) +
-  coord_cartesian(ylim =c(-1.72, .85))
-
-ggsave("./6 PCA/4 Figures/Within SS comparison/PC2_EffectofRace_ParRace.jpg")
-
-ggplot(filter(RaceEffect, Component == "PC3"), aes(Task, Race.e, color = Subject)) +
-  geom_point() +
-  geom_line(aes(group = Subject)) +
+  geom_line(aes(group = Subject), size = .8) +
   ylab("Effect of Race") +
   ggtitle("PC-3") +
+  scale_color_manual(values = condColors) +
+  theme_bw() +
   theme(panel.grid.major.x = element_blank(), 
         panel.grid.minor.x = element_blank(),
         axis.text = element_text(size = 22),
         axis.title = element_text(size = 24),
-        plot.title = element_text(size = 22),
-        legend.text = element_text(size = 14),
-        legend.title = element_text(size = 16)) +
-  coord_cartesian(ylim =c(-1.72, .85))
+        axis.title.x = element_blank(),
+        plot.title = element_text(size = 22, hjust = 0.5),
+        legend.position="none") +
+  coord_cartesian(ylim =c(-1.75, .8)) +
+  scale_y_continuous(breaks=c(-1.5, -1, -.5, 0, .5, 1))
 
 ggsave("./6 PCA/4 Figures/Within SS comparison/PC3_EffectofRace.jpg")
 
-ggplot(filter(GenEffect, Component == "PC2"), aes(Task, Gen.e, color = Subject)) +
+# Effect of gender
+ggplot(filter(GenEff, Component == "PC2"), aes(Task, Gen.e, color = Direction)) +
   geom_point() +
-  geom_line(aes(group = Subject)) +
+  geom_line(aes(group = Subject), size = .8) +
   ylab("Effect of Gender") +
   ggtitle("PC-2") +
+  scale_color_manual(values = condColors) +
+  theme_bw() +
   theme(panel.grid.major.x = element_blank(), 
         panel.grid.minor.x = element_blank(),
         axis.text = element_text(size = 22),
         axis.title = element_text(size = 24),
-        plot.title = element_text(size = 22),
-        legend.text = element_text(size = 14),
-        legend.title = element_text(size = 16)) +
+        axis.title.x = element_blank(),
+        plot.title = element_text(size = 22, hjust = 0.5),
+        legend.position="none") +
   coord_cartesian(ylim =c(-1.2, .85))
 
 ggsave("./6 PCA/4 Figures/Within SS comparison/PC2_EffectofGender.jpg")
 
-ggplot(filter(GenEffect, Component == "PC3"), aes(Task, Gen.e, color = Subject)) +
+ggplot(filter(GenEff, Component == "PC3"), aes(Task, Gen.e, color = Direction)) +
   geom_point() +
-  geom_line(aes(group = Subject)) +
+  geom_line(aes(group = Subject), size = .8) +
   ylab("Effect of Gender") +
   ggtitle("PC-3") +
+  scale_color_manual(values = condColors) +
+  theme_bw() +
   theme(panel.grid.major.x = element_blank(), 
         panel.grid.minor.x = element_blank(),
         axis.text = element_text(size = 22),
         axis.title = element_text(size = 24),
-        plot.title = element_text(size = 22),
-        legend.text = element_text(size = 14),
-        legend.title = element_text(size = 16)) +
+        axis.title.x = element_blank(),
+        plot.title = element_text(size = 22, hjust = 0.5),
+        legend.position="none") +
   coord_cartesian(ylim =c(-1.2, .85))
 
 ggsave("./6 PCA/4 Figures/Within SS comparison/PC3_EffectofGender.jpg")
