@@ -1,1 +1,3 @@
-This repository contains materials, data, and analyses reported in a manuscript that has been submitted for publication ("Explicit Categorization Goals Affect Attention-Related Processing of Race and Gender During Person Construal").
+This repository contains materials, data, and analyses reported in the following publication:
+
+Volpert-Esmond, H. I., & Bartholow, B. D. (2019). Explicit categorization goals affect attention-related processing of race and gender during person construal. Journal of Experimental Social Psychology, 85, 103839.
